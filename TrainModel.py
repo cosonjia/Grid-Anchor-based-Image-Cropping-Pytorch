@@ -35,7 +35,8 @@ parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float, help='i
 parser.add_argument('--save_folder', default='weights/ablation/cropping/', help='Directory for saving checkpoint models')
 args = parser.parse_args()
 
-args.save_folder = args.save_folder + args.base_model + '/' + 'downsample' + str(args.downsample) + '_' + args.scale + '_Aug' + str(args.augmentation) + '_Align' +str(args.align_size) + '_Cdim'+str(args.reduced_dim)
+args.save_folder = args.save_folder + args.base_model + '/' + 'downsample' + str(args.downsample) + '_' + args.scale \
+                   + '_Aug' + str(args.augmentation) + '_Align' +str(args.align_size) + '_Cdim'+str(args.reduced_dim)
 
 if not os.path.exists(args.save_folder):
     os.makedirs(args.save_folder)
@@ -43,18 +44,24 @@ if not os.path.exists(args.save_folder):
 cuda = True if torch.cuda.is_available() else False
 
 if cuda:
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    #torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    Tensor = torch.cuda.FloatTensor
+   # Tensor = torch.FloatTensor
 else:
-    torch.set_default_tensor_type('torch.FloatTensor')
+    Tensor = torch.FloatTensor
+    #torch.set_default_tensor_type('torch.FloatTensor')
 
 
-data_loader_train = data.DataLoader(GAICD(image_size=args.image_size, dataset_dir=args.dataset_root, set='train', augmentation=args.augmentation),
-                              batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True, worker_init_fn=random.seed(SEED))
+data_loader_train = data.DataLoader(GAICD(image_size=args.image_size, dataset_dir=args.dataset_root,
+                                          set='train', augmentation=args.augmentation),
+                                          batch_size = args.batch_size, num_workers=args.num_workers,
+                                          shuffle = True, worker_init_fn=random.seed(SEED))
 
 data_loader_test = data.DataLoader(GAICD(image_size=args.image_size, dataset_dir=args.dataset_root, set='test'),
-                              batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+                                         batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-net = build_crop_model(scale=args.scale, alignsize=args.align_size, reddim=args.reduced_dim, loadweight=True, model=args.base_model, downsample=args.downsample)
+net = build_crop_model(scale=args.scale, alignsize=args.align_size, reddim=args.reduced_dim, loadweight=False,
+                       model=args.base_model, downsample=args.downsample)
 
 # fix the batch normalization in mobilenet and shufflenet because batchsize = 1
 net.eval()
@@ -94,15 +101,15 @@ def test():
             roi.append((0, bboxs['xmin'][idx],bboxs['ymin'][idx],bboxs['xmax'][idx],bboxs['ymax'][idx]))
 
         if cuda:
-            image = Variable(image.cuda())
-            roi = Variable(torch.Tensor(roi))
+            image = Variable(image.cuda()).type(Tensor)
+            roi = Variable(torch.Tensor(roi)).type(Tensor)
         else:
             image = Variable(image)
             roi = Variable(roi)
 
         #t0 = time.time()
-        out = net(image,roi)
-        loss = torch.nn.SmoothL1Loss(reduction='elementwise_mean')(out.squeeze(), torch.Tensor(MOS))
+        out = net(image,roi).type(Tensor)
+        loss = torch.nn.SmoothL1Loss(reduction='elementwise_mean')(out.squeeze(), torch.Tensor(MOS).type(Tensor)).type(Tensor)
         total_loss += loss.item()
         avg_loss = total_loss / (id+1)
 
@@ -171,7 +178,7 @@ def train():
             roi = []
             MOS = []
 
-            random_ID = range(0,len(bboxs['xmin']))
+            random_ID = [i for i in range(0,len(bboxs['xmin']))]
             random.shuffle(random_ID)
 
             for idx in random_ID[:64]:
@@ -179,16 +186,16 @@ def train():
                 MOS.append(sample['MOS'][idx])
 
             if cuda:
-                image = Variable(image.cuda())
-                roi = Variable(torch.Tensor(roi))
-                MOS = torch.Tensor(MOS)
+                image = Variable(image.cuda()).type(Tensor)
+                roi = Variable(torch.Tensor(roi)).type(Tensor)
+                MOS = torch.Tensor(MOS).type(Tensor)
             else:
                 image = Variable(image)
                 roi = Variable(roi)
 
             # forward
 
-            out = net(image,roi)
+            out = net(image, roi).type(Tensor)
             loss = torch.nn.SmoothL1Loss(reduction='elementwise_mean')(out.squeeze(), MOS)
             total_loss += loss.item()
             avg_loss = total_loss / (id+1)

@@ -3,7 +3,7 @@ import os
 import torch
 from torch.utils.ffi import create_extension
 
-sources = ['src/rod_align.c']
+sources = ['src/rod_align.cpp']
 headers = ['src/rod_align.h']
 extra_objects = []
 #sources = []

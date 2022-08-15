@@ -1,11 +1,10 @@
 import torch
 from torch.autograd import Function
-# from .._ext import roi_align
-from roi_align import roi_align
-
+# from .._ext import rod_align
+import rod_align
 
 # TODO use save_for_backward instead
-class RoIAlignFunction(Function):
+class RoDAlignFunction(Function):
     def __init__(self, aligned_height, aligned_width, spatial_scale):
         self.aligned_width = int(aligned_width)
         self.aligned_height = int(aligned_height)
@@ -22,27 +21,27 @@ class RoIAlignFunction(Function):
 
         output = features.new(num_rois, num_channels, self.aligned_height, self.aligned_width).zero_()
         if features.is_cuda:
-            roi_align.roi_align_forward_cuda(self.aligned_height,
+            rod_align.rod_align_forward_cuda(self.aligned_height,
                                              self.aligned_width,
                                              self.spatial_scale, features,
                                              rois, output)
         else:
-            roi_align.roi_align_forward(self.aligned_height,
+            rod_align.rod_align_forward(self.aligned_height,
                                         self.aligned_width,
                                         self.spatial_scale, features,
                                         rois, output)
-        #            raise NotImplementedError
+#            raise NotImplementedError
 
         return output
 
     def backward(self, grad_output):
-        assert (self.feature_size is not None and grad_output.is_cuda)
+        assert(self.feature_size is not None and grad_output.is_cuda)
 
         batch_size, num_channels, data_height, data_width = self.feature_size
 
         grad_input = self.rois.new(batch_size, num_channels, data_height,
-                                   data_width).zero_()
-        roi_align.roi_align_backward_cuda(self.aligned_height,
+                                  data_width).zero_()
+        rod_align.rod_align_backward_cuda(self.aligned_height,
                                           self.aligned_width,
                                           self.spatial_scale, grad_output,
                                           self.rois, grad_input)

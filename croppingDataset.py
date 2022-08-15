@@ -217,9 +217,10 @@ class setup_test_dataset(data.Dataset):
         image = image[:, :, (2, 1, 0)]
 
         if self.transform:
-            resized_image,transformed_bbox,source_bboxes = self.transform(image,self.image_size)
+            resized_image, transformed_bbox, source_bboxes = self.transform(image, self.image_size)
 
-        sample = {'imgpath': self._imgpath[idx], 'image': image, 'resized_image': resized_image, 'tbboxes':transformed_bbox , 'sourceboxes': source_bboxes}
+        sample = {'imgpath': self._imgpath[idx], 'image': image, 'resized_image': resized_image,
+                  'tbboxes':transformed_bbox , 'sourceboxes': source_bboxes}
 
         return sample
 

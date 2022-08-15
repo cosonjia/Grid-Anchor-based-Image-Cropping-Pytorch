@@ -13,7 +13,7 @@ import time
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
-
+model="79_1.170_1.065_0.920_0.836_1.635_1.520_1.348_1.234_1.160_1.206.pth"
 parser = argparse.ArgumentParser(
     description='Grid anchor based image cropping With Pytorch')
 parser.add_argument('--input_dir', default='dataset/GAIC/images/test',
@@ -26,7 +26,7 @@ parser.add_argument('--num_workers', default=0, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
-parser.add_argument('--net_path', default='pretrained_model/mobilenet_0.625_0.583_0.553_0.525_0.785_0.762_0.748_0.723_0.783_0.806.pth',
+parser.add_argument('--net_path', default=f'pretrained_model/{model}',
                     help='Directory for saving checkpoint models')
 args = parser.parse_args()
 
@@ -44,17 +44,17 @@ if torch.cuda.is_available():
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
-dataset = setup_test_dataset(dataset_dir = args.input_dir)
+dataset = setup_test_dataset(dataset_dir=args.input_dir)
 
 
 def test():
 
-    net = build_crop_model(scale='multi', alignsize=9, reddim=8, loadweight=True, model='mobilenetv2',downsample=4)
+    net = build_crop_model(scale='multi', alignsize=9, reddim=8, loadweight=False, model='mobilenetv2',downsample=4)
     net.load_state_dict(torch.load(args.net_path))
     net.eval()
 
     if args.cuda:
-        net = torch.nn.DataParallel(net,device_ids=[0])
+        net = torch.nn.DataParallel(net, device_ids=[0])
         cudnn.benchmark = True
         net = net.cuda()
 

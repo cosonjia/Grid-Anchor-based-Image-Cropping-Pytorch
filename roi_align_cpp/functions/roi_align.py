@@ -1,8 +1,8 @@
 import torch
 from torch.autograd import Function
+from torch.nn.modules.module import Module
 # from .._ext import roi_align
-from roi_align import roi_align
-
+import roi_align
 
 # TODO use save_for_backward instead
 class RoIAlignFunction(Function):
@@ -22,7 +22,11 @@ class RoIAlignFunction(Function):
 
         output = features.new(num_rois, num_channels, self.aligned_height, self.aligned_width).zero_()
         if features.is_cuda:
-            roi_align.roi_align_forward_cuda(self.aligned_height,
+            # roi_align.roi_align_forward_cuda(self.aligned_height,
+            #                                  self.aligned_width,
+            #                                  self.spatial_scale, features,
+            #                                  rois, output)
+            roi_align.forward(self.aligned_height,
                                              self.aligned_width,
                                              self.spatial_scale, features,
                                              rois, output)
@@ -31,17 +35,17 @@ class RoIAlignFunction(Function):
                                         self.aligned_width,
                                         self.spatial_scale, features,
                                         rois, output)
-        #            raise NotImplementedError
+#            raise NotImplementedError
 
         return output
 
     def backward(self, grad_output):
-        assert (self.feature_size is not None and grad_output.is_cuda)
+        assert(self.feature_size is not None and grad_output.is_cuda)
 
         batch_size, num_channels, data_height, data_width = self.feature_size
 
         grad_input = self.rois.new(batch_size, num_channels, data_height,
-                                   data_width).zero_()
+                                  data_width).zero_()
         roi_align.roi_align_backward_cuda(self.aligned_height,
                                           self.aligned_width,
                                           self.spatial_scale, grad_output,
